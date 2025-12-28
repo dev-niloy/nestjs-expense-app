@@ -2,6 +2,16 @@ import { Injectable } from '@nestjs/common';
 import { data, ReportType } from './data';
 import { v4 as uuid } from 'uuid';
 
+interface ReportPayload {
+  amount: number;
+  source: string;
+}
+
+interface UpdateReportPayload {
+  source?: string;
+  amount?: number;
+}
+
 @Injectable()
 export class AppService {
   getAllIReports(type: ReportType) {
@@ -14,7 +24,7 @@ export class AppService {
     );
   }
 
-  createReport(payload: { source: string; amount: number }, type: ReportType) {
+  createReport(payload: ReportPayload, type: ReportType) {
     const new_data = {
       id: uuid(),
       source: payload.source,
@@ -27,21 +37,24 @@ export class AppService {
     return new_data;
   }
 
-  updateReport(
-    payload: { source: string; amount: number },
-    id: string,
-    type: ReportType,
-  ) {
-    const report = data.report.find(
-      (report) => report.id === id && report.type === type,
+  updateReport(type: ReportType, id: string, body: UpdateReportPayload) {
+    const reportToUpdate = data.report
+      .filter((report) => report.type === type)
+      .find((report) => report.id === id);
+
+    if (!reportToUpdate) return;
+
+    const reportIndex = data.report.findIndex(
+      (report) => report.id === reportToUpdate.id,
     );
 
-    if (report) {
-      report.source = payload.source;
-      report.amount = payload.amount;
-      report.updated_at = new Date().toISOString();
-    }
-    return report;
+    data.report[reportIndex] = {
+      ...data.report[reportIndex],
+      ...body,
+      updated_at: new Date().toISOString(),
+    };
+
+    return data.report[reportIndex];
   }
 
   deleteReport(id: string, type: ReportType) {
